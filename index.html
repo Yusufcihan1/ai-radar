@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>AI Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+/* Düzen: tek okuma sütunu, radar başlığı, bölümler arası ince çizgi; 'Günün fikri' tek ters renkli blok */
+:root {
+  --paper: #eef2f1;
+  --surface: #f8faf9;
+  --ink: #142023;
+  --muted: #56666a;
+  --line: #d3dcda;
+  --signal: #0b7a68;
+  --hot: #b5530b;
+  --idea-bg: #142023;
+  --idea-fg: #eef2f1;
+  --idea-accent: #5fd3bd;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0c1315; --surface: #121b1e; --ink: #e2ebe9; --muted: #8fa19e; --line: #233236;
+    --signal: #44c7ae; --hot: #f0a04b; --idea-bg: #183a35; --idea-fg: #e2ebe9; --idea-accent: #7fe6d1;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0c1315; --surface: #121b1e; --ink: #e2ebe9; --muted: #8fa19e; --line: #233236;
+  --signal: #44c7ae; --hot: #f0a04b; --idea-bg: #183a35; --idea-fg: #e2ebe9; --idea-accent: #7fe6d1;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font: 400 16px/1.6 var(--font-body);
+  padding-inline: 16px; padding-block: 0 48px;
+}
+.wrap { max-width: 760px; margin-inline: auto; }
+a { color: inherit; text-decoration-color: color-mix(in srgb, var(--signal) 55%, transparent); text-underline-offset: 3px; }
+a:hover { color: var(--signal); }
+a:focus-visible, select:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; border-radius: 3px; }
+
+/* Masthead */
+.masthead { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 28px 18px; border-bottom: 2px solid var(--ink); }
+.brand { display: grid; gap: 4px; min-width: 0; }
+.wordmark { font: 800 clamp(2.2rem, 7vw, 3.4rem)/0.95 var(--font-display); letter-spacing: -0.02em; margin: 0; }
+.wordmark span { color: var(--signal); }
+.tagline { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.scope { width: 92px; height: 92px; flex: none; }
+.scope .ring { fill: none; stroke: var(--line); stroke-width: 1; }
+.scope .blip { fill: var(--signal); }
+.scope .sweep { transform-origin: 60px 60px; animation: sweep 6s linear infinite; }
+@keyframes sweep { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .scope .sweep { animation: none; } }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-block: 10px; border-bottom: 1px solid var(--line); font: 500 0.8rem/1.4 var(--font-mono); color: var(--muted); }
+.toolbar label { display: inline-flex; align-items: center; gap: 8px; }
+.toolbar select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; }
+
+/* Sayı girişi */
+.lead { padding-block: 28px 8px; }
+.meta { margin: 0 0 10px; font: 500 0.78rem/1.4 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--signal); }
+h1 { font: 700 clamp(1.9rem, 5.4vw, 2.7rem)/1.08 var(--font-display); letter-spacing: -0.015em; margin: 0 0 14px; text-wrap: balance; }
+.intro { font-size: 1.08rem; color: var(--ink); max-width: 62ch; margin: 0 0 18px; }
+.takeaways { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.takeaways li { position: relative; padding-left: 22px; max-width: 64ch; }
+.takeaways li::before { content: ""; position: absolute; left: 2px; top: 0.62em; width: 8px; height: 8px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 0 4px color-mix(in srgb, var(--signal) 18%, transparent); }
+
+/* Bölümler */
+.block { padding-block: 26px 6px; border-top: 1px solid var(--line); margin-top: 26px; }
+.block-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 6px; }
+.block-head h2 { font: 700 1.35rem/1.2 var(--font-display); margin: 0; }
+.count { font: 500 0.75rem/1.4 var(--font-mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.list, .models { list-style: none; margin: 0; padding: 0; }
+.item, .model { padding-block: 16px; border-bottom: 1px dashed var(--line); min-width: 0; }
+.item:last-child, .model:last-child { border-bottom: 0; }
+.item p, .model p { margin: 6px 0 0; max-width: 66ch; }
+.item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.repo { font: 600 1rem/1.35 var(--font-mono); overflow-wrap: anywhere; }
+.repo.small { font-size: 0.85rem; font-weight: 500; }
+.owner { color: var(--muted); font-weight: 400; }
+.headline { font: 600 1.08rem/1.35 var(--font-body); }
+.orig { font: 400 0.8rem/1.4 var(--font-mono); color: var(--muted); }
+.why { color: var(--muted); }
+.why span { font: 600 0.72rem/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--signal); margin-right: 8px; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font: 400 0.8rem/1.4 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.fact b { color: var(--ink); font-weight: 600; }
+.fact.hot b { color: var(--hot); }
+.fact.link { text-decoration: none; }
+.chip { font: 500 0.72rem/1 var(--font-mono); padding: 5px 7px; border-radius: 3px; background: color-mix(in srgb, var(--signal) 12%, var(--surface)); color: var(--ink); }
+.chip.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+
+/* Sinyal göstergesi */
+.meter { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; flex: none; padding-top: 3px; }
+.meter i { display: block; width: 4px; background: var(--line); border-radius: 1px; }
+.meter i.on { background: var(--signal); }
+
+/* Günün fikri: sayfadaki tek ters renkli blok */
+.idea { margin-top: 30px; background: var(--idea-bg); color: var(--idea-fg); border-radius: 6px; padding: 26px clamp(18px, 4vw, 30px); }
+.idea .eyebrow { margin: 0 0 6px; font: 600 0.75rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--idea-accent); }
+.idea h2 { font: 700 1.5rem/1.2 var(--font-display); margin: 0 0 10px; text-wrap: balance; }
+.idea p { margin: 0 0 14px; max-width: 64ch; }
+.idea ol { margin: 0; padding-left: 1.3em; display: grid; gap: 8px; max-width: 64ch; }
+.idea ol li::marker { font-family: var(--font-mono); color: var(--idea-accent); }
+
+/* Takip listesi */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th { font: 500 0.72rem/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+td { padding: 7px 6px; border-bottom: 1px dashed var(--line); }
+.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.delta { color: var(--signal); font-weight: 600; }
+.delta.muted { color: var(--muted); font-weight: 400; }
+
+footer { margin-top: 40px; padding-top: 16px; border-top: 2px solid var(--ink); font-size: 0.85rem; color: var(--muted); display: grid; gap: 6px; }
+footer p { margin: 0; max-width: 70ch; }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <p class="wordmark">AI <span>Radar</span></p>
+      <p class="tagline">Yapay zekâ ve otomasyon dünyasından günlük Türkçe özet</p>
+    </div>
+    
+    <svg class="scope" viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <linearGradient id="sweep-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" style="stop-color:var(--signal);stop-opacity:0"/>
+          <stop offset="1" style="stop-color:var(--signal);stop-opacity:.45"/>
+        </linearGradient>
+      </defs>
+      <circle cx="60" cy="60" r="56" class="ring"/>
+      <circle cx="60" cy="60" r="38" class="ring"/>
+      <circle cx="60" cy="60" r="20" class="ring"/>
+      <path d="M60 4 V116 M4 60 H116" class="ring"/>
+      <g class="sweep"><path d="M60 60 L60 4 A56 56 0 0 1 108.5 32 Z" fill="url(#sweep-grad)"/></g>
+      <circle class="blip" cx="78" cy="34" r="2.6"/><circle class="blip" cx="40" cy="46" r="2.6"/><circle class="blip" cx="86" cy="74" r="2.6"/><circle class="blip" cx="52" cy="84" r="2.6"/><circle class="blip" cx="30" cy="70" r="2.6"/><circle class="blip" cx="70" cy="56" r="2.6"/>
+    </svg>
+  </header>
+  <div class="toolbar">
+    <span>Her sabah · GitHub · Hacker News · Hugging Face · n8n</span>
+    <label for="issue-select">Arşiv
+      <select id="issue-select"><option value="2026-10-14">Sayı 1 · 14 Ekim 2026</option></select>
+    </label>
+  </div>
+  
+  <article class="issue" data-date="2026-10-14">
+    <div class="lead">
+      <p class="meta">Sayı 1 · 14 Ekim 2026, Çarşamba · veri 11:06 TSİ</p>
+      <h1>Agent&#x27;lar altyapıyı yeniden yazdırıyor</h1>
+      <p class="intro">Anthropic agent trafiği yüzünden git&#x27;i bıraktı, bir geliştiricinin sitesi AI botlarının yüküyle yavaşladı, Google da yeni öncü modelini yayınladı. Bu arada belge okuma o kadar ucuzladı ki artık GPU bile gerekmiyor.</p>
+      <ul class="takeaways"><li>Google, Gemini 4 Argon&#x27;u Google AI Pro ve Ultra abonelerine açtı. Şirketin kendi ölçümlerine göre terminal görevlerinde hâlâ Claude Opus 5.5&#x27;in gerisinde.</li><li>Anthropic&#x27;te günlük kod birleştirme sayısı beş ayda 2.500&#x27;den 30.000&#x27;in üzerine çıktı. Git bu yükü kaldıramayınca şirket kendi sürüm kontrol sistemi Scion&#x27;u yazdı.</li><li>1 milyon parametrelik Indra OCR, sıradan işlemcilerde saniyede 49 sayfa okuyor. Fatura ve evrak otomasyonu için GPU şartı ortadan kalkıyor.</li><li>Çin&#x27;de bir hafta içinde McDonald&#x27;s MCP&#x27;si üzerine en az dört yeni skill yayınlandı. Bir marka MCP sunucusu açınca geliştiriciler üstüne ücretsiz ürün inşa ediyor.</li></ul>
+    </div>
+    
+    <section class="block" aria-labelledby="gh-2026-10-14">
+      <header class="block-head">
+        <h2 id="gh-2026-10-14">GitHub'da yükselenler</h2>
+        <span class="count">son 7 günde açılanlar · 6 repo</span>
+      </header>
+      <ol class="list">
+        <li class="item">
+          <div class="item-top">
+            <a href="https://github.com/onehumanbeing/esp32-iphone-agent" class="repo" target="_blank" rel="noopener"><span class="owner">onehumanbeing/</span>esp32-iphone-agent</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 5/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="on" style="height:10px"></i><i class="on" style="height:13px"></i><i class="on" style="height:16px"></i></span>
+          </div>
+          <p>7 dolarlık bir ESP32 kartıyla AI modeline gerçek bir iPhone kullandırıyor. Ekranı AirPlay ile görüyor, dokunuşları USB klavye-fare gibi gönderiyor. Mac, geliştirici hesabı veya jailbreak gerekmiyor.</p>
+          <p class="why"><span>Neden önemli</span>API&#x27;si olmayan mobil uygulamaları otomatikleştirmenin şimdiye kadarki en ucuz yolu.</p>
+          <div class="facts"><span class="fact"><b>1.797</b> yıldız</span><span class="fact hot"><b>708</b>/gün</span><span class="fact">açılış 11 Ekim 2026</span><span class="fact">Python</span><span class="fact">MIT</span></div>
+        </li>
+        <li class="item">
+          <div class="item-top">
+            <a href="https://github.com/datalab-to/indra" class="repo" target="_blank" rel="noopener"><span class="owner">datalab-to/</span>indra</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 2/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="" style="height:10px"></i><i class="" style="height:13px"></i><i class="" style="height:16px"></i></span>
+          </div>
+          <p>Sadece işlemciyle çalışan hızlı OCR. Satırları buluyor, okuma sırasını çıkarıyor ve sonucu Markdown olarak veriyor. Latin alfabeli yaklaşık 50 dili destekliyor.</p>
+          <p class="why"><span>Neden önemli</span>Fatura ve evrak okuma hattını GPU kiralamadan kurmak mümkün hale geliyor. El yazısı ve karmaşık tablolarda zayıf.</p>
+          <div class="facts"><span class="fact"><b>90</b> yıldız</span><span class="fact hot"><b>90</b>/gün</span><span class="fact">açılış 13 Ekim 2026</span><span class="fact">Python</span><span class="fact">Apache-2.0</span></div>
+        </li>
+        <li class="item">
+          <div class="item-top">
+            <a href="https://github.com/zhuyansen/new-term-radar" class="repo" target="_blank" rel="noopener"><span class="owner">zhuyansen/</span>new-term-radar</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 4/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="on" style="height:10px"></i><i class="on" style="height:13px"></i><i class="" style="height:16px"></i></span>
+          </div>
+          <p>Yeni model, ürün ve repo adlarını X, Hugging Face, GitHub ve site haritalarında, anahtar kelime araçları listelemeden önce yakalayan günlük radar.</p>
+          <p class="why"><span>Neden önemli</span>Trendi erken yakalamak içerik ve SEO işinde doğrudan para demek. AI Radar&#x27;ın uzak bir akrabası.</p>
+          <div class="facts"><span class="fact"><b>896</b> yıldız</span><span class="fact hot"><b>439</b>/gün</span><span class="fact">açılış 12 Ekim 2026</span><span class="fact">Python</span><span class="fact">MIT</span></div>
+        </li>
+        <li class="item">
+          <div class="item-top">
+            <a href="https://github.com/Ayzzz123/mcd-coupon-strategist" class="repo" target="_blank" rel="noopener"><span class="owner">Ayzzz123/</span>mcd-coupon-strategist</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 2/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="" style="height:10px"></i><i class="" style="height:13px"></i><i class="" style="height:16px"></i></span>
+          </div>
+          <p>McDonald&#x27;s MCP&#x27;si üzerine kurulu bir skill. Seçilen mağazada en ucuz sipariş kombinasyonunu hesaplıyor ve sepet tuzaklarına karşı uyarıyor.</p>
+          <p class="why"><span>Neden önemli</span>Aynı MCP üzerine bu hafta kalori, grup siparişi ve parti planlama skill&#x27;leri de çıktı. Türkiye&#x27;de MCP açan ilk perakende markası benzer bir ilgi görebilir.</p>
+          <div class="facts"><span class="fact"><b>300</b> yıldız</span><span class="fact hot"><b>79</b>/gün</span><span class="fact">açılış 10 Ekim 2026</span><span class="fact">Python</span><span class="fact">MIT</span></div>
+        </li>
+        <li class="item">
+          <div class="item-top">
+            <a href="https://github.com/aindeev/agent-chrome-relay" class="repo" target="_blank" rel="noopener"><span class="owner">aindeev/</span>agent-chrome-relay</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 2/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="" style="height:10px"></i><i class="" style="height:13px"></i><i class="" style="height:16px"></i></span>
+          </div>
+          <p>AI agent&#x27;larının, senin oturum açmış Chrome&#x27;unu arka plan sekmelerinde kullanmasını sağlıyor.</p>
+          <p class="why"><span>Neden önemli</span>Giriş gerektiren paneller ve CRM&#x27;ler için pratik bir çözüm. Ancak oturumunu bir agent&#x27;a açmanın güvenlik riskini iyi tartmak gerekiyor.</p>
+          <div class="facts"><span class="fact"><b>280</b> yıldız</span><span class="fact hot"><b>70</b>/gün</span><span class="fact">açılış 10 Ekim 2026</span><span class="fact">Go</span><span class="fact">MIT</span></div>
+        </li>
+        <li class="item">
+          <div class="item-top">
+            <a href="https://github.com/liyupi/ai-promo-video-maker" class="repo" target="_blank" rel="noopener"><span class="owner">liyupi/</span>ai-promo-video-maker</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 2/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="" style="height:10px"></i><i class="" style="height:13px"></i><i class="" style="height:16px"></i></span>
+          </div>
+          <p>Ürün adını ya da adresini veriyorsun. Claude Code veya Cursor ürünü araştırıyor, stil örnekleri hazırlıyor, ekranları 4K olarak yakalıyor, müziğin ritmine göre kurguluyor ve AI seslendirmeyle tanıtım videosu çıkarıyor.</p>
+          <p class="why"><span>Neden önemli</span>KOBİ&#x27;lere satılabilecek bir tanıtım videosu hizmetinin hazır iskeleti.</p>
+          <div class="facts"><span class="fact"><b>262</b> yıldız</span><span class="fact hot"><b>53</b>/gün</span><span class="fact">açılış 9 Ekim 2026</span><span class="fact">Python</span><span class="fact">MIT</span></div>
+        </li></ol>
+    </section>
+    
+    <aside class="idea" aria-labelledby="idea-2026-10-14">
+      <p class="eyebrow">Günün fikri</p>
+      <h2 id="idea-2026-10-14">Muhasebe büroları için GPU&#x27;suz evrak hattı</h2>
+      <p>Bugünün üç haberi tek bir ürüne dönüşüyor. Müşteriler fatura ve fişlerini WhatsApp veya e-postayla gönderiyor. Indra OCR bunları sıradan bir sunucuda okuyor, Claude Haiku tutar, tarih, vergi numarası gibi alanları çıkarıyor, n8n de her şeyi tabloya işleyip eksik evrak için müşteriye hatırlatma gönderiyor.</p>
+      <ol><li>n8n&#x27;i Docker ile kur ve Gmail tetikleyicisiyle başla. Bugünkü 20818 numaralı şablon iyi bir iskelet.</li><li>Indra&#x27;yı aynı makinede küçük bir HTTP servisi olarak çalıştır. GPU gerekmiyor.</li><li>Alan çıkarma için Claude Haiku&#x27;yu API anahtarıyla bağla. İlk testte belge başına maliyeti ölç ve fiyatına yansıt.</li><li>Bir bürodan 50 gerçek belgeyle test et. Doğruluk tutarsa büro başına aylık abonelikle sat. KVKK sözleşmesini baştan hazırla.</li></ol>
+    </aside>
+    
+    <section class="block" aria-labelledby="hn-2026-10-14">
+      <header class="block-head">
+        <h2 id="hn-2026-10-14">Gündem</h2>
+        <span class="count">Hacker News · son 24 saat</span>
+      </header>
+      <ol class="list">
+        <li class="item">
+          <div class="item-top">
+            <a href="https://deepmind.google/models/gemini/" class="headline" target="_blank" rel="noopener">Gemini 4 Argon yayında</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 5/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="on" style="height:10px"></i><i class="on" style="height:13px"></i><i class="on" style="height:16px"></i></span>
+          </div>
+          <p class="orig">Gemini 4 Argon</p>
+          <p>Google DeepMind&#x27;ın yeni öncü modeli Google AI Pro ve Ultra abonelerine açıldı. Uzun soluklu yazılım geliştirme, bilim, robotik ve siber savunmaya odaklanıyor ve 1 milyon token&#x27;lık çıktı penceresi var. Google&#x27;ın kendi ölçümüne göre Terminal-bench 4.0&#x27;da %57,4 alıyor, Claude Opus 5.5 ise %66,4. Robotik sürümü de ayrıca duyuruldu.</p>
+          <div class="facts">
+            <span class="fact"><b>1.241</b> puan</span>
+            <a href="https://news.ycombinator.com/item?id=50073879" class="fact link" target="_blank" rel="noopener"><b>866</b> yorum</a>
+          </div>
+        </li>
+        <li class="item">
+          <div class="item-top">
+            <a href="https://www.anthropic.com/engineering/redesigning-source-control" class="headline" target="_blank" rel="noopener">Anthropic kaynak kontrolünü yeniden tasarladı</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 4/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="on" style="height:10px"></i><i class="on" style="height:13px"></i><i class="" style="height:16px"></i></span>
+          </div>
+          <p class="orig">Redesigning source control at Anthropic</p>
+          <p>Anthropic monorepo&#x27;sunu yaklaşık beş ayda git&#x27;ten kendi geliştirdiği Scion&#x27;a taşıdı. Git, istemcilerin çevrimdışı çalıştığını varsayıyor. Anthropic&#x27;te ise istemcilerin neredeyse tamamı sürekli çevrimiçi olan agent&#x27;lar. Şirketin verdiği rakama göre yeni sistem eski kurulumdan yaklaşık 200 kat daha az kaynak tüketiyor.</p>
+          <div class="facts">
+            <span class="fact"><b>740</b> puan</span>
+            <a href="https://news.ycombinator.com/item?id=50073633" class="fact link" target="_blank" rel="noopener"><b>727</b> yorum</a>
+          </div>
+        </li>
+        <li class="item">
+          <div class="item-top">
+            <a href="https://eg2.haku.sh/" class="headline" target="_blank" rel="noopener">EmbeddingGemma 2&#x27;yi konuşma tanıma modeline çevirdiler</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 3/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="on" style="height:10px"></i><i class="" style="height:13px"></i><i class="" style="height:16px"></i></span>
+          </div>
+          <p class="orig">We turned EmbeddingGemma 2 into a speech-to-text model</p>
+          <p>Modelin ses kodlayıcısına dokunmadan küçük bir &#x27;okuyucu&#x27; eğitmişler. Temel bir MacBook Air, bir saatlik sesi yaklaşık 13 saniyede yazıya döküyor. Kelime hata oranı %5 civarında, lider modellerde bu oran %2–3. Şimdilik yalnızca İngilizce çalışıyor.</p>
+          <div class="facts">
+            <span class="fact"><b>411</b> puan</span>
+            <a href="https://news.ycombinator.com/item?id=50069971" class="fact link" target="_blank" rel="noopener"><b>93</b> yorum</a>
+          </div>
+        </li>
+        <li class="item">
+          <div class="item-top">
+            <a href="https://www.sammystraus.com/#i-posted-to-hn-and-then-my-website-was-flooded-with-ai-bot-traffic" class="headline" target="_blank" rel="noopener">HN&#x27;de paylaştım, sitem AI bot trafiğine boğuldu</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 3/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="on" style="height:10px"></i><i class="" style="height:13px"></i><i class="" style="height:16px"></i></span>
+          </div>
+          <p class="orig">I posted to HN, and then my website was flooded with AI bot traffic</p>
+          <p>Sitesi yavaşlayan geliştirici, trafiğin neredeyse yarısının AI ile bülten üreten tek bir servisten geldiğini fark etmiş. Sorunu engelleme, robots.txt kuralları ve hız sınırıyla çözmüş. Bu ders bizim için de geçerli: AI Radar yalnızca resmi API&#x27;leri kullanıyor ve kaynak sitelere yük bindirmiyor.</p>
+          <div class="facts">
+            <span class="fact"><b>318</b> puan</span>
+            <a href="https://news.ycombinator.com/item?id=50073221" class="fact link" target="_blank" rel="noopener"><b>170</b> yorum</a>
+          </div>
+        </li>
+        <li class="item">
+          <div class="item-top">
+            <a href="https://pulseos.finance" class="headline" target="_blank" rel="noopener">Show HN: AI modelleri cihazda çalışan Mac bütçe uygulaması</a>
+            <span class="meter" role="img" aria-label="Sinyal gücü 2/5"><i class="on" style="height:4px"></i><i class="on" style="height:7px"></i><i class="" style="height:10px"></i><i class="" style="height:13px"></i><i class="" style="height:16px"></i></span>
+          </div>
+          <p class="orig">Show HN: Pulse Local, a Mac budgeting app whose AI models run on your machine</p>
+          <p>Kişisel finans verisini buluta göndermeden, tamamen cihaz üzerinde çalışan modellerle analiz eden bir uygulama. Gizlilik, AI ürünlerinde bir satış argümanına dönüşmeye başladı.</p>
+          <div class="facts">
+            <span class="fact"><b>103</b> puan</span>
+            <a href="https://news.ycombinator.com/item?id=50080275" class="fact link" target="_blank" rel="noopener"><b>57</b> yorum</a>
+          </div>
+        </li></ol>
+    </section>
+    
+    <section class="block" aria-labelledby="n8n-2026-10-14">
+      <header class="block-head">
+        <h2 id="n8n-2026-10-14">n8n'de yeni şablonlar</h2>
+        <span class="count">ücretsiz · topluluk</span>
+      </header>
+      <ol class="list">
+        <li class="item">
+          <a href="https://n8n.io/workflows/20818" class="headline" target="_blank" rel="noopener">Fatura hatırlatmalarına gelen cevapları Claude Haiku ile sınıflandır</a>
+          <p class="orig">#20818 · Classify invoice reminder replies with Claude Haiku, Gmail and Google Sheets</p>
+          <p>Gmail&#x27;e gelen cevapları okuyor ve her birini ödendi, söz verildi, itiraz veya ilgisiz olarak etiketliyor. Sonucu Google Sheets&#x27;e yazıyor ve Gmail&#x27;de ilgili etiketi uyguluyor.</p>
+          <div class="facts"><span class="chip">Google Sheets</span><span class="chip">Gmail</span><span class="chip">Code</span><span class="chip">Basic LLM Chain</span><span class="chip">Anthropic Chat Model</span><span class="chip">Structured Output Parser</span></div>
+        </li>
+        <li class="item">
+          <a href="https://n8n.io/workflows/20805" class="headline" target="_blank" rel="noopener">İptal edilen randevuları bekleme listesinden doldur</a>
+          <p class="orig">#20805 · Fill cancelled booking slots from a ranked waitlist using webhooks and SMS/WhatsApp</p>
+          <p>Bir randevu iptal edilince listedeki en uygun üç kişiye SMS veya WhatsApp ile teklif gönderiyor. İlk cevap veren randevuyu alıyor. Yanıt gelmezse her 30 dakikada bir sıradaki kişilere tekrar teklif ediyor.</p>
+          <div class="facts"><span class="chip">Code</span></div>
+        </li>
+        <li class="item">
+          <a href="https://n8n.io/workflows/20801" class="headline" target="_blank" rel="noopener">Kaybedilen satış fırsatlarını geri kazan</a>
+          <p class="orig">#20801 · Recover lost GoHighLevel deals with OpenAI, Gmail, and Google Sheets</p>
+          <p>Her sabah CRM&#x27;den kaybedilen fırsatları çekiyor. Zamanlama ve ilgi sinyallerine göre AI ile bir geri kazanım adımı seçiyor, e-posta gönderiyor ve emin olamadığı durumları yöneticiye aktarıyor.</p>
+          <div class="facts"><span class="chip">Google Sheets</span><span class="chip">HTTP Request</span><span class="chip">Gmail</span><span class="chip">Code</span><span class="chip">AI Agent</span><span class="chip">OpenAI Chat Model</span></div>
+        </li></ol>
+    </section>
+    
+    <section class="block" aria-labelledby="hf-2026-10-14">
+      <header class="block-head">
+        <h2 id="hf-2026-10-14">Hugging Face'te trend</h2>
+        <span class="count">modeller</span>
+      </header>
+      <ul class="models">
+        <li class="model">
+          <a href="https://huggingface.co/google/embeddinggemma-2" class="repo" target="_blank" rel="noopener"><span class="owner">google/</span>embeddinggemma-2</a>
+          <p>Metin, görsel, ses ve videoyu aynı vektör uzayına taşıyan çok dilli embedding modeli. Arama ve RAG sistemleri için uygun. Yukarıdaki konuşma tanıma deneyi de bu model üzerine kurulu.</p>
+          <div class="facts">
+            <span class="chip">feature-extraction</span><span class="chip ghost">apache-2.0</span>
+            <span class="fact"><b>2.138</b> beğeni</span>
+            <span class="fact"><b>124,9 B</b> indirme</span>
+          </div>
+        </li>
+        <li class="model">
+          <a href="https://huggingface.co/Lightricks/LTX-2.5" class="repo" target="_blank" rel="noopener"><span class="owner">Lightricks/</span>LTX-2.5</a>
+          <p>Görselden video üreten açık model. Beğeni sayısıyla listenin açık ara en popüleri.</p>
+          <div class="facts">
+            <span class="chip">image-to-video</span><span class="chip ghost">other</span>
+            <span class="fact"><b>7.678</b> beğeni</span>
+            <span class="fact"><b>1,7 Mn</b> indirme</span>
+          </div>
+        </li>
+        <li class="model">
+          <a href="https://huggingface.co/openbmb/MiniCPM-V-4.7-35B-A3B" class="repo" target="_blank" rel="noopener"><span class="owner">openbmb/</span>MiniCPM-V-4.7-35B-A3B</a>
+          <p>Görsel anlayan bir MoE modeli. Toplam 35 milyar parametresi var ama her adımda yalnızca yaklaşık 3 milyarı çalışıyor, bu da onu verimli kılıyor.</p>
+          <div class="facts">
+            <span class="chip">image-text-to-text</span><span class="chip ghost">apache-2.0</span>
+            <span class="fact"><b>519</b> beğeni</span>
+            <span class="fact"><b>630</b> indirme</span>
+          </div>
+        </li>
+        <li class="model">
+          <a href="https://huggingface.co/baidu/Unlimited-OCR" class="repo" target="_blank" rel="noopener"><span class="owner">baidu/</span>Unlimited-OCR</a>
+          <p>Baidu&#x27;nun MIT lisanslı OCR modeli. Indra&#x27;ya güçlü bir alternatif.</p>
+          <div class="facts">
+            <span class="chip">image-text-to-text</span><span class="chip ghost">mit</span>
+            <span class="fact"><b>4.624</b> beğeni</span>
+            <span class="fact"><b>1,2 Mn</b> indirme</span>
+          </div>
+        </li>
+        <li class="model">
+          <a href="https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo" class="repo" target="_blank" rel="noopener"><span class="owner">Qwen/</span>Qwen-Image-2.1-Turbo</a>
+          <p>Qwen&#x27;in hızlı görsel üretim modeli.</p>
+          <div class="facts">
+            <span class="chip">text-to-image</span><span class="chip ghost">other</span>
+            <span class="fact"><b>728</b> beğeni</span>
+            <span class="fact"><b>9.665</b> indirme</span>
+          </div>
+        </li></ul>
+    </section>
+    
+    <section class="block" aria-labelledby="wl-2026-10-14">
+      <header class="block-head">
+        <h2 id="wl-2026-10-14">Takip listesi</h2>
+        <span class="count">Günlük artış ikinci ölçümden itibaren görünür</span>
+      </header>
+      
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Repo</th><th class="num">Yıldız</th><th class="num">24 saat</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><a href="https://github.com/openclaw/openclaw" class="repo small" target="_blank" rel="noopener">openclaw/openclaw</a></td>
+            <td class="num">391.936</td>
+            <td class="num"><span class="delta muted">–</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/obra/superpowers" class="repo small" target="_blank" rel="noopener">obra/superpowers</a></td>
+            <td class="num">298.826</td>
+            <td class="num"><span class="delta muted">–</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/anomalyco/opencode" class="repo small" target="_blank" rel="noopener">anomalyco/opencode</a></td>
+            <td class="num">213.344</td>
+            <td class="num"><span class="delta muted">–</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/n8n-io/n8n" class="repo small" target="_blank" rel="noopener">n8n-io/n8n</a></td>
+            <td class="num">207.317</td>
+            <td class="num"><span class="delta muted">–</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/firecrawl/firecrawl" class="repo small" target="_blank" rel="noopener">firecrawl/firecrawl</a></td>
+            <td class="num">191.326</td>
+            <td class="num"><span class="delta muted">–</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/ollama/ollama" class="repo small" target="_blank" rel="noopener">ollama/ollama</a></td>
+            <td class="num">183.095</td>
+            <td class="num"><span class="delta muted">–</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/anthropics/skills" class="repo small" target="_blank" rel="noopener">anthropics/skills</a></td>
+            <td class="num">180.999</td>
+            <td class="num"><span class="delta muted">–</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/langgenius/dify" class="repo small" target="_blank" rel="noopener">langgenius/dify</a></td>
+            <td class="num">158.417</td>
+            <td class="num"><span class="delta muted">–</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/langflow-ai/langflow" class="repo small" target="_blank" rel="noopener">langflow-ai/langflow</a></td>
+            <td class="num">155.645</td>
+            <td class="num"><span class="delta muted">–</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/open-webui/open-webui" class="repo small" target="_blank" rel="noopener">open-webui/open-webui</a></td>
+            <td class="num">155.606</td>
+            <td class="num"><span class="delta muted">–</span></td>
+          </tr></tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+  <footer>
+    <p>Veriler resmi API'lerden toplanır: GitHub, Hacker News (Algolia), Hugging Face ve n8n şablon kütüphanesi. Yıldız, puan ve indirme sayıları doğrudan bu kaynaklardan gelir.</p>
+    <p>Seçim, Türkçe özet ve yorumlar Claude ile hazırlanır. Yatırım tavsiyesi değildir.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var select = document.getElementById('issue-select');
+  var issues = document.querySelectorAll('article.issue');
+  function show(dateStr) {
+    var found = false;
+    issues.forEach(function (el) {
+      var match = el.getAttribute('data-date') === dateStr;
+      el.hidden = !match;
+      if (match) found = true;
+    });
+    if (found && select) select.value = dateStr;
+    return found;
+  }
+  var hash = (location.hash || '').slice(1);
+  if (hash) show(hash);
+  if (select) select.addEventListener('change', function () { show(select.value); window.scrollTo(0, 0); });
+})();
+</script>
+
+</body>
+</html>
