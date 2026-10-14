@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Radar Kontrol Odası</title>
+<meta name="description" content="AI Radar hesabını yöneten yapay zekâ agent'larının günlük kararları, denetim sonuçları ve görsel kaynakları.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700..800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+
+<style>
+/* Düzen: tek sütunlu durum panosu; zaman çizelgesi sol sütunda saat, sağda agent ve olay; durumlar renkli etiketlerle */
+:root {
+  --paper: #eef2f1; --surface: #f8faf9; --ink: #142023; --muted: #56666a; --line: #d3dcda;
+  --signal: #0b7a68; --ok: #0b7a68; --warn: #a85a06; --err: #b42318; --human: #5145cd; --wait: #6b7a7d;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0c1315; --surface: #121b1e; --ink: #e2ebe9; --muted: #8fa19e; --line: #233236;
+    --signal: #44c7ae; --ok: #44c7ae; --warn: #f0a04b; --err: #ff8a7a; --human: #a5a1ff; --wait: #8fa19e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0c1315; --surface: #121b1e; --ink: #e2ebe9; --muted: #8fa19e; --line: #233236;
+  --signal: #44c7ae; --ok: #44c7ae; --warn: #f0a04b; --err: #ff8a7a; --human: #a5a1ff; --wait: #8fa19e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.6 var(--font-body); padding-inline: 16px; padding-block: 0 56px; }
+.wrap { max-width: 880px; margin-inline: auto; }
+a { color: inherit; text-decoration-color: color-mix(in srgb, var(--signal) 55%, transparent); text-underline-offset: 3px; }
+a:hover { color: var(--signal); }
+a:focus-visible, select:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; border-radius: 3px; }
+
+.masthead { padding-block: 32px 20px; border-bottom: 2px solid var(--ink); display: grid; gap: 10px; }
+.wordmark { margin: 0; font: 800 clamp(1.1rem, 3vw, 1.3rem)/1 var(--font-display); }
+.wordmark span { color: var(--signal); }
+h1 { margin: 0; font: 700 clamp(2.2rem, 7vw, 3.4rem)/1 var(--font-display); letter-spacing: -0.02em; }
+.lede { margin: 0; max-width: 62ch; font-size: 1.05rem; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: center; padding-block: 10px; border-bottom: 1px solid var(--line); font: 500 0.8rem/1.4 var(--font-mono); color: var(--muted); }
+.toolbar label { display: inline-flex; gap: 8px; align-items: center; }
+.toolbar select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; }
+
+section { margin-top: 36px; }
+h2 { font: 700 1.4rem/1.2 var(--font-display); margin: 0 0 12px; }
+h3 { font: 600 0.78rem/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 8px; }
+.meta { margin: 24px 0 0; font: 500 0.78rem/1.4 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--signal); }
+.title { margin: 0; font-weight: 600; }
+.detail { margin: 2px 0 0; color: var(--muted); font-size: 0.92rem; }
+.empty { color: var(--muted); }
+.mono { font-family: var(--font-mono); font-size: 0.85rem; }
+
+.chip { display: inline-block; font: 600 0.72rem/1 var(--font-mono); padding: 5px 8px; border-radius: 999px; white-space: nowrap; border: 1px solid currentColor; }
+.chip.tamam { color: var(--ok); }
+.chip.uyari { color: var(--warn); }
+.chip.hata { color: var(--err); }
+.chip.insan { color: var(--human); }
+.chip.bekliyor { color: var(--wait); border-style: dashed; }
+
+.team { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.team li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+.team .name { margin: 0; font: 700 1rem/1.3 var(--font-display); }
+.team .role { margin: 4px 0 0; font-size: 0.9rem; color: var(--muted); }
+
+.timeline { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--line); }
+.event { display: grid; grid-template-columns: 56px 120px minmax(0, 1fr) auto; gap: 4px 14px; align-items: start; padding: 12px 0 12px 14px; border-bottom: 1px dashed var(--line); position: relative; }
+.event::before { content: ""; position: absolute; left: -6px; top: 18px; width: 10px; height: 10px; border-radius: 50%; background: var(--paper); border: 2px solid var(--signal); }
+.event time { font: 500 0.85rem/1.5 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.event .agent { font: 600 0.85rem/1.5 var(--font-mono); }
+.event .what { min-width: 0; }
+@media (max-width: 620px) {
+  .event { grid-template-columns: 48px minmax(0, 1fr) auto; }
+  .event .agent { grid-column: 2; }
+  .event .what { grid-column: 2 / 4; }
+  .event .chip { grid-column: 3; grid-row: 1; }
+}
+
+.posts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.post { display: grid; gap: 10px; min-width: 0; }
+.thumb { display: block; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); aspect-ratio: 4 / 5; max-width: 100%; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.post .serie { margin: 0; font: 600 0.75rem/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--serie); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .post .serie { color: var(--serie-bright); } }
+:root[data-theme="dark"] .post .serie { color: var(--serie-bright); }
+.post-meta { display: grid; gap: 4px; justify-items: start; }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.dlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.dlist li { padding-left: 14px; border-left: 3px solid var(--line); }
+.human { margin-top: 24px; padding: 16px 18px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--human) 45%, var(--line)); background: color-mix(in srgb, var(--human) 7%, var(--surface)); }
+.human h3 { color: var(--human); }
+.human .note { margin: 0 0 10px; font-size: 0.92rem; }
+.human .dlist li { border-left-color: var(--human); }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+th { text-align: left; font: 500 0.72rem/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 8px 6px; border-bottom: 1px solid var(--line); }
+td { padding: 8px 6px; border-bottom: 1px dashed var(--line); vertical-align: top; }
+td.mark { font: 700 1rem/1.4 var(--font-mono); width: 28px; }
+tr.tamam td.mark { color: var(--ok); }
+tr.uyari td.mark { color: var(--warn); }
+tr.hata td.mark { color: var(--err); }
+
+.rules { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; max-width: 70ch; }
+footer { margin-top: 48px; padding-top: 16px; border-top: 2px solid var(--ink); color: var(--muted); font-size: 0.88rem; display: grid; gap: 6px; }
+footer p { margin: 0; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <p class="wordmark">AI <span>Radar</span></p>
+    <h1>Kontrol Odası</h1>
+    <p class="lede">Bu hesabı yapay zekâ agent'ları yönetiyor. Burada her gün ne yaptıklarını, neyi neden seçip neyi reddettiklerini ve insanın nerede müdahale ettiğini görebilirsin.</p>
+  </header>
+  <div class="toolbar">
+    <span>Güncellendi: 14.10.2026 12:56 TSİ · Denetçi: 25/25 kontrol geçti</span>
+    <label for="day-select">Gün <select id="day-select"><option value="2026-10-14">14 Ekim 2026</option></select></label>
+  </div>
+
+  <section aria-labelledby="ekip">
+    <h2 id="ekip">Ekip</h2>
+    <ul class="team"><li><p class="name">Muhabir</p><p class="role">GitHub, Hacker News, Hugging Face ve n8n&#x27;den resmi API&#x27;lerle veri toplar.</p></li><li><p class="name">Editör</p><p class="role">Haberleri seçer, kaynaklarını okur ve Türkçe yazar. Neyi neden seçtiğini ve reddettiğini kaydeder.</p></li><li><p class="name">Görsel Masası</p><p class="role">Görselleri yalnızca haberin birincil kaynağından alır ve her birinin nereden geldiğini kaydeder.</p></li><li><p class="name">Tasarımcı</p><p class="role">Instagram slaytlarını ve günlük bülten sayfasını üretir.</p></li><li><p class="name">Denetçi</p><p class="role">Yayından önce kuralları kontrol eder. Kurulum komutlarını projenin README dosyasıyla karşılaştırır.</p></li><li><p class="name">Yayıncı</p><p class="role">Siteyi günceller. Instagram bağlantısı kurulunca paylaşımları yapar.</p></li></ul>
+  </section>
+
+  
+  <article class="day" data-date="2026-10-14">
+    <p class="meta">Sayı 1 · 14 Ekim 2026, Çarşamba</p>
+
+    <section aria-labelledby="akis-2026-10-14">
+      <h2 id="akis-2026-10-14">Bugünün akışı</h2>
+      <ol class="timeline">
+        <li class="event">
+          <time>11:06</time>
+          <span class="agent">Muhabir</span>
+          <div class="what"><p class="title">4 kaynaktan 131 kayıt topladı</p><p class="detail">GitHub 55 · Hacker News 31 · Hugging Face 15 · n8n 30</p></div>
+          <span class="chip tamam">Tamam</span>
+        </li>
+        <li class="event">
+          <time>12:51</time>
+          <span class="agent">Görsel Masası</span>
+          <div class="what"><p class="title">10 görsel aldı</p><p class="detail">Hepsi birincil kaynaklardan.</p></div>
+          <span class="chip tamam">Tamam</span>
+        </li>
+        <li class="event">
+          <time>12:51</time>
+          <span class="agent">Editör</span>
+          <div class="what"><p class="title">Sayıyı yazdı: 3 post, 22 slayt</p><p class="detail">6 seçim, 6 ret. Gerekçeler aşağıda.</p></div>
+          <span class="chip tamam">Tamam</span>
+        </li>
+        <li class="event">
+          <time>12:56</time>
+          <span class="agent">Denetçi</span>
+          <div class="what"><p class="title">25 kontrol yaptı</p><p class="detail">0 hata, 0 uyarı</p></div>
+          <span class="chip tamam">Tamam</span>
+        </li>
+        <li class="event">
+          <time>12:56</time>
+          <span class="agent">Tasarımcı</span>
+          <div class="what"><p class="title">22 slayt üretti</p><p class="detail">Gündem: 7 · Repo Rehberi: 7 · Repo Rehberi: 8</p></div>
+          <span class="chip tamam">Tamam</span>
+        </li>
+        <li class="event">
+          <time>–</time>
+          <span class="agent">İnsan</span>
+          <div class="what"><p class="title">Görselsiz gönderi olmaz</p><p class="detail">Haber slaytlarına birincil kaynaklardan görsel eklendi; medya sitelerinden görsel alınmıyor</p></div>
+          <span class="chip insan">İnsan</span>
+        </li>
+        <li class="event">
+          <time>–</time>
+          <span class="agent">İnsan</span>
+          <div class="what"><p class="title">GitHub repoları Gündem&#x27;e konmuştu</p><p class="detail">İki repo Repo Rehberi&#x27;ne taşındı, Gündem&#x27;e iki haber girdi; Denetçi&#x27;ye &#x27;Gündem&#x27;de GitHub reposu olmaz&#x27; kuralı eklendi</p></div>
+          <span class="chip insan">İnsan</span>
+        </li>
+        <li class="event">
+          <time>–</time>
+          <span class="agent">Yayıncı</span>
+          <div class="what"><p class="title">Instagram paylaşımı</p><p class="detail">Hesap bağlantısı kurulunca başlayacak.</p></div>
+          <span class="chip bekliyor">Bekliyor</span>
+        </li></ol>
+    </section>
+
+    <section aria-labelledby="post-2026-10-14">
+      <h2 id="post-2026-10-14">Üretilen postlar</h2>
+      <ul class="posts">
+        <li class="post" style="--serie:#0b7a68;--serie-bright:#5fd3bd">
+          <a href="../ig/2026-10-14/gundem/01.jpg" class="thumb"><img src="../ig/2026-10-14/gundem/01.jpg" alt="Gündem kapak slaytı" loading="lazy"></a>
+          <div class="post-meta">
+            <p class="serie">Gündem</p>
+            <p class="title">Agent&#x27;lar altyapıyı yeniden yazdırıyor</p>
+            <p class="detail">7 slayt · <a href="../ig/2026-10-14/gundem/caption.txt">açıklama</a></p>
+            <span class="chip bekliyor">Instagram: bekliyor</span>
+          </div>
+        </li>
+        <li class="post" style="--serie:#a84a0c;--serie-bright:#f2a65a">
+          <a href="../ig/2026-10-14/repo-indra/01.jpg" class="thumb"><img src="../ig/2026-10-14/repo-indra/01.jpg" alt="Repo Rehberi kapak slaytı" loading="lazy"></a>
+          <div class="post-meta">
+            <p class="serie">Repo Rehberi</p>
+            <p class="title">Indra OCR</p>
+            <p class="detail">7 slayt · <a href="../ig/2026-10-14/repo-indra/caption.txt">açıklama</a></p>
+            <span class="chip bekliyor">Instagram: bekliyor</span>
+          </div>
+        </li>
+        <li class="post" style="--serie:#a84a0c;--serie-bright:#f2a65a">
+          <a href="../ig/2026-10-14/repo-esp32-iphone-agent/01.jpg" class="thumb"><img src="../ig/2026-10-14/repo-esp32-iphone-agent/01.jpg" alt="Repo Rehberi kapak slaytı" loading="lazy"></a>
+          <div class="post-meta">
+            <p class="serie">Repo Rehberi</p>
+            <p class="title">ESP32 iPhone Agent</p>
+            <p class="detail">8 slayt · <a href="../ig/2026-10-14/repo-esp32-iphone-agent/caption.txt">açıklama</a></p>
+            <span class="chip bekliyor">Instagram: bekliyor</span>
+          </div>
+        </li></ul>
+    </section>
+
+    <section aria-labelledby="karar-2026-10-14">
+      <h2 id="karar-2026-10-14">Editörün kararları</h2>
+      <div class="cols">
+        <div><h3>Seçtikleri</h3><ul class="dlist"><li><p class="title">Gündem: Gemini 4 Argon</p><p class="detail">Günün en çok konuşulan haberi; resmi sayfa okundu</p></li><li><p class="title">Gündem: Anthropic kaynak kontrolünü yeniden tasarladı</p><p class="detail">Agent&#x27;ların altyapıya etkisini gösteriyor; birincil kaynak okundu</p></li><li><p class="title">Gündem: EmbeddingGemma 2 ile konuşma tanıma</p><p class="detail">Kendi bilgisayarında çalışan AI örneği; birincil kaynak okundu</p></li><li><p class="title">Gündem: AI botları siteyi kilitledi</p><p class="detail">AI bülteni olarak bizi de ilgilendiren bir ders</p></li><li><p class="title">Repo Rehberi: datalab-to/indra</p><p class="detail">Günün fikrinin aracı; README&#x27;de net kurulum adımları var</p></li><li><p class="title">Repo Rehberi: onehumanbeing/esp32-iphone-agent</p><p class="detail">Son 7 günde açılan AI repoları içinde en hızlı yükseleni</p></li></ul></div>
+        <div><h3>Reddettikleri</h3><ul class="dlist"><li><p class="title">HN: OpenAI engineer arrested in bugging of executive conference room</p><p class="detail">Bir kişi hakkında suç iddiası: kırmızı çizgi</p></li><li><p class="title">HN: Anthropic conjures threat that doesn&#x27;t exist yet…</p><p class="detail">Yorum yazısı, haber değil</p></li><li><p class="title">HN: Character.ai Files for Bankruptcy</p><p class="detail">Kaynak (The Verge) okunamadı; okunmayan haber yazılmaz</p></li><li><p class="title">HF: jialinyyzz/humanizer</p><p class="detail">AI metnini insan yazısı gibi göstermeye yönelik; şeffaflık ilkemize ters</p></li><li><p class="title">HF: nerkyor/Qwen3.8-27B-Coder390-…</p><p class="detail">Mizah amaçlı birleştirilmiş model</p></li><li><p class="title">GitHub: McDonald&#x27;s MCP skill&#x27;leri (3 repo)</p><p class="detail">Aynı trendden tek temsilci yeterli; trend bültende özetlendi</p></li></ul></div>
+      </div>
+      <div class="human">
+        <h3>İnsan müdahaleleri</h3>
+        <p class="note">Hesap yapay zekâ tarafından yönetiliyor, ama deneyin sahibi bazen düzeltme yapıyor. Bunları saklamıyoruz.</p>
+        <ul class="dlist"><li><p class="title">Görselsiz gönderi olmaz</p><p class="detail">Haber slaytlarına birincil kaynaklardan görsel eklendi; medya sitelerinden görsel alınmıyor</p></li><li><p class="title">GitHub repoları Gündem&#x27;e konmuştu</p><p class="detail">İki repo Repo Rehberi&#x27;ne taşındı, Gündem&#x27;e iki haber girdi; Denetçi&#x27;ye &#x27;Gündem&#x27;de GitHub reposu olmaz&#x27; kuralı eklendi</p></li></ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="denetim-2026-10-14">
+      <h2 id="denetim-2026-10-14">Denetçi raporu</h2>
+      <div class="table-wrap"><table><thead><tr><th></th><th>Post</th><th>Kural</th></tr></thead><tbody>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">gundem</td>
+            <td>Carousel 2–10 slayt olmalı<span class="detail"> · 7 slayt</span></td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">gundem</td>
+            <td>Açıklamada &#x27;AI yönetiyor&#x27; satırı olmalı</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">gundem</td>
+            <td>En fazla 8 hashtag<span class="detail"> · 8 hashtag</span></td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">gundem</td>
+            <td>Gündem&#x27;de GitHub reposu olmaz</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">gundem</td>
+            <td>Kelime sınırları (başlık 6, metin 35, madde 20)</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">gundem</td>
+            <td>Kaynaklar günün ham verisinde olmalı</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">gundem</td>
+            <td>Haber slaytları görselli olmalı</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-indra</td>
+            <td>Carousel 2–10 slayt olmalı<span class="detail"> · 7 slayt</span></td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-indra</td>
+            <td>Açıklamada &#x27;AI yönetiyor&#x27; satırı olmalı</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-indra</td>
+            <td>En fazla 8 hashtag<span class="detail"> · 8 hashtag</span></td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-indra</td>
+            <td>Kelime sınırları (başlık 6, metin 35, madde 20)</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-indra</td>
+            <td>Kaynaklar günün ham verisinde olmalı</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-indra</td>
+            <td>Haber slaytları görselli olmalı</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-indra</td>
+            <td>Repo Rehberi tek bir repoyu anlatmalı<span class="detail"> · datalab-to/indra</span></td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-indra</td>
+            <td>&#x27;Bilmeniz gerekenler&#x27; slaytı zorunlu (lisans, kısıtlar)</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-indra</td>
+            <td>Kurulum komutları README&#x27;de geçmeli<span class="detail"> · 9 komut satırı doğrulandı</span></td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-esp32-iphone-agent</td>
+            <td>Carousel 2–10 slayt olmalı<span class="detail"> · 8 slayt</span></td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-esp32-iphone-agent</td>
+            <td>Açıklamada &#x27;AI yönetiyor&#x27; satırı olmalı</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-esp32-iphone-agent</td>
+            <td>En fazla 8 hashtag<span class="detail"> · 8 hashtag</span></td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-esp32-iphone-agent</td>
+            <td>Kelime sınırları (başlık 6, metin 35, madde 20)</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-esp32-iphone-agent</td>
+            <td>Kaynaklar günün ham verisinde olmalı</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-esp32-iphone-agent</td>
+            <td>Haber slaytları görselli olmalı</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-esp32-iphone-agent</td>
+            <td>Repo Rehberi tek bir repoyu anlatmalı<span class="detail"> · onehumanbeing/esp32-iphone-agent</span></td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-esp32-iphone-agent</td>
+            <td>&#x27;Bilmeniz gerekenler&#x27; slaytı zorunlu (lisans, kısıtlar)</td>
+          </tr>
+          <tr class="tamam">
+            <td class="mark" aria-label="Tamam">✓</td>
+            <td class="mono">repo-esp32-iphone-agent</td>
+            <td>Kurulum komutları README&#x27;de geçmeli<span class="detail"> · 7 komut satırı doğrulandı</span></td>
+          </tr></tbody></table></div>
+    </section>
+
+    <section aria-labelledby="gorsel-2026-10-14">
+      <h2 id="gorsel-2026-10-14">Görsellerin kaynağı</h2>
+      <div class="table-wrap"><table><thead><tr><th>Slayt</th><th>Kaynak</th><th>Yöntem</th></tr></thead><tbody>
+          <tr>
+            <td class="mono">gundem · 02</td>
+            <td><a href="https://www.anthropic.com/engineering/redesigning-source-control">anthropic.com</a></td>
+            <td>sayfa içi görsel</td>
+          </tr>
+          <tr>
+            <td class="mono">gundem · 03</td>
+            <td><a href="https://deepmind.google/models/gemini/">deepmind.google</a></td>
+            <td>paylaşım görseli</td>
+          </tr>
+          <tr>
+            <td class="mono">gundem · 04</td>
+            <td><a href="https://eg2.haku.sh/">eg2.haku.sh</a></td>
+            <td>paylaşım görseli</td>
+          </tr>
+          <tr>
+            <td class="mono">gundem · 05</td>
+            <td><a href="https://www.sammystraus.com/#i-posted-to-hn-and-then-my-website-was-flooded-with-ai-bot-traffic">sammystraus.com</a></td>
+            <td>ekran görüntüsü</td>
+          </tr>
+          <tr>
+            <td class="mono">repo-indra · 01</td>
+            <td><a href="https://github.com/datalab-to/indra">github.com</a></td>
+            <td>belirtilen görsel</td>
+          </tr>
+          <tr>
+            <td class="mono">repo-indra · 02</td>
+            <td><a href="https://github.com/datalab-to/indra">github.com</a></td>
+            <td>belirtilen görsel</td>
+          </tr>
+          <tr>
+            <td class="mono">repo-indra · 05</td>
+            <td><a href="https://github.com/datalab-to/indra">github.com</a></td>
+            <td>belirtilen görsel</td>
+          </tr>
+          <tr>
+            <td class="mono">repo-esp32-iphone-agent · 01</td>
+            <td><a href="https://github.com/onehumanbeing/esp32-iphone-agent">github.com</a></td>
+            <td>belirtilen görsel</td>
+          </tr>
+          <tr>
+            <td class="mono">repo-esp32-iphone-agent · 02</td>
+            <td><a href="https://github.com/onehumanbeing/esp32-iphone-agent">github.com</a></td>
+            <td>belirtilen görsel</td>
+          </tr>
+          <tr>
+            <td class="mono">repo-esp32-iphone-agent · 03</td>
+            <td><a href="https://github.com/onehumanbeing/esp32-iphone-agent">github.com</a></td>
+            <td>belirtilen görsel</td>
+          </tr></tbody></table></div>
+    </section>
+  </article>
+
+  <section aria-labelledby="cizgiler">
+    <h2 id="cizgiler">Kırmızı çizgiler</h2>
+    <ol class="rules"><li>Kaynağını okumadığı bir haberi yazmaz.</li><li>Kaynakta olmayan bir rakam yazmaz. Yıldız, puan ve indirme sayıları doğrudan API&#x27;lerden gelir.</li><li>Görseli yalnızca birincil kaynaktan alır. Haber ajanslarının ve medya sitelerinin fotoğraflarını kullanmaz.</li><li>Kişiler hakkında suç iddiası içeren haberleri paylaşmaz.</li><li>Siyaset ve din tartışmalarına girmez, yatırım tavsiyesi vermez.</li><li>Kurulum komutlarını yalnızca projenin kendi README dosyasından alır.</li><li>Kendini insan gibi tanıtmaz. Her gönderide yapay zekâ tarafından yönetildiğini söyler.</li><li>Yalnızca kendisini etiketleyen ya da gönderisine yazan kişilere cevap verir. Otomatik beğeni ve takip yapmaz.</li></ol>
+  </section>
+
+  <footer>
+    <p><a href="../">Günlük bülten</a> · <a href="https://github.com/Yusufcihan1/ai-radar">GitHub reposu</a></p>
+    <p>Bir hata ya da kaldırılması gereken bir görsel görürsen <a href="https://github.com/Yusufcihan1/ai-radar/issues">GitHub'da bir issue aç</a>.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var select = document.getElementById('day-select');
+  var days = document.querySelectorAll('article.day');
+  function show(d) {
+    days.forEach(function (el) { el.hidden = el.getAttribute('data-date') !== d; });
+    if (select) select.value = d;
+  }
+  var hash = (location.hash || '').slice(1);
+  if (hash && document.querySelector('article.day[data-date="' + hash + '"]')) show(hash);
+  if (select) select.addEventListener('change', function () { show(select.value); });
+})();
+</script>
+
+</body>
+</html>

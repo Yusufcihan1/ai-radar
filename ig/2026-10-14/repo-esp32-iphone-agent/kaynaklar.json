@@ -1,0 +1,41 @@
+{
+ "01": {
+  "sayfa": "https://github.com/onehumanbeing/esp32-iphone-agent",
+  "kredi": "github.com",
+  "alindi": "2026-10-14T12:51+03:00",
+  "durum": "alındı",
+  "yontem": "belirtilen görsel",
+  "gorsel_url": "https://raw.githubusercontent.com/onehumanbeing/esp32-iphone-agent/main/docs/images/demo.png",
+  "dosya": "01.png",
+  "boyut": [
+   2000,
+   1154
+  ]
+ },
+ "02": {
+  "sayfa": "https://github.com/onehumanbeing/esp32-iphone-agent",
+  "kredi": "github.com",
+  "alindi": "2026-10-14T12:51+03:00",
+  "durum": "alındı",
+  "yontem": "belirtilen görsel",
+  "gorsel_url": "https://raw.githubusercontent.com/onehumanbeing/esp32-iphone-agent/main/docs/images/example-alarm.png",
+  "dosya": "02.png",
+  "boyut": [
+   2400,
+   984
+  ]
+ },
+ "03": {
+  "sayfa": "https://github.com/onehumanbeing/esp32-iphone-agent",
+  "kredi": "github.com",
+  "alindi": "2026-10-14T12:52+03:00",
+  "durum": "alındı",
+  "yontem": "belirtilen görsel",
+  "gorsel_url": "https://raw.githubusercontent.com/onehumanbeing/esp32-iphone-agent/main/docs/images/setup.png",
+  "dosya": "03.png",
+  "boyut": [
+   2000,
+   968
+  ]
+ }
+}

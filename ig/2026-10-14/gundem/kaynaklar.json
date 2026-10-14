@@ -2,7 +2,7 @@
  "02": {
   "sayfa": "https://www.anthropic.com/engineering/redesigning-source-control",
   "kredi": "anthropic.com",
-  "alindi": "2026-10-14T12:38+03:00",
+  "alindi": "2026-10-14T12:51+03:00",
   "durum": "alındı",
   "yontem": "sayfa içi görsel",
   "gorsel_url": "https://www-cdn.anthropic.com/images/4zrzovbb/website/1e2a750dba61db4a76b72eec5b0cf50b8a7f878c-3840x2160.png",
@@ -15,7 +15,7 @@
  "03": {
   "sayfa": "https://deepmind.google/models/gemini/",
   "kredi": "deepmind.google",
-  "alindi": "2026-10-14T12:38+03:00",
+  "alindi": "2026-10-14T12:51+03:00",
   "durum": "alındı",
   "yontem": "paylaşım görseli",
   "gorsel_url": "https://lh3.googleusercontent.com/ufe__EokQeN6itypUE9XmN6-HX9kqi1cNllSWZ688h8dXXOh8lDS_Ltc8c-hdbJSp86GcKcpbHmsXharkzaEaFzhOFLsbx7zFcoi20GqnwTREcto=w1200-h630-n-nu-rw",
@@ -26,29 +26,29 @@
   ]
  },
  "04": {
-  "sayfa": "https://github.com/datalab-to/indra",
-  "kredi": "github.com",
-  "alindi": "2026-10-14T12:38+03:00",
+  "sayfa": "https://eg2.haku.sh/",
+  "kredi": "eg2.haku.sh",
+  "alindi": "2026-10-14T12:51+03:00",
   "durum": "alındı",
-  "yontem": "belirtilen görsel",
-  "gorsel_url": "https://raw.githubusercontent.com/datalab-to/indra/main/assets/benchmarks/throughput.png",
+  "yontem": "paylaşım görseli",
+  "gorsel_url": "https://eg2.haku.sh/speed-table.png",
   "dosya": "04.png",
   "boyut": [
-   1520,
-   744
+   1600,
+   1000
   ]
  },
  "05": {
-  "sayfa": "https://github.com/onehumanbeing/esp32-iphone-agent",
-  "kredi": "github.com",
-  "alindi": "2026-10-14T12:38+03:00",
+  "sayfa": "https://www.sammystraus.com/#i-posted-to-hn-and-then-my-website-was-flooded-with-ai-bot-traffic",
+  "kredi": "sammystraus.com",
+  "alindi": "2026-10-14T12:51+03:00",
   "durum": "alındı",
-  "yontem": "paylaşım görseli",
-  "gorsel_url": "https://opengraph.githubassets.com/0983a46b5600081b9357e6ff25368b28d6450992e325b54a819a373a863fb09c/onehumanbeing/esp32-iphone-agent",
+  "yontem": "ekran görüntüsü",
+  "gorsel_url": "https://www.sammystraus.com/#i-posted-to-hn-and-then-my-website-was-flooded-with-ai-bot-traffic",
   "dosya": "05.png",
   "boyut": [
-   1200,
-   600
+   1280,
+   720
   ]
  }
 }
